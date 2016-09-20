@@ -47,9 +47,10 @@
 typedef enum
 {
     SHOW_TREE,
+    SHOW_TABLE,
     COMPRESS,
     DECOMPRESS
-} mode_t;
+} mode_e;
 
 /***************************************************************************
 *                               PROTOTYPES
@@ -76,7 +77,7 @@ int main (int argc, char *argv[])
     int status, canonical;
     option_t *optList, *thisOpt;
     FILE *inFile, *outFile;
-    mode_t mode;
+    mode_e mode;
 
     /* initialize variables */
     inFile = NULL;
@@ -85,7 +86,7 @@ int main (int argc, char *argv[])
     canonical = 0;
 
     /* parse command line */
-    optList = GetOptList(argc, argv, "Ccdtni:o:h?");
+    optList = GetOptList(argc, argv, "Ccdtsni:o:h?");
     thisOpt = optList;
 
     while (thisOpt != NULL)
@@ -106,6 +107,10 @@ int main (int argc, char *argv[])
 
             case 't':       /* just display tree */
                 mode = SHOW_TREE;
+                break;
+
+            case 's':       /* just display tree */
+                mode = SHOW_TABLE;
                 break;
 
             case 'i':       /* input file name */
@@ -194,8 +199,12 @@ int main (int argc, char *argv[])
             }
             else
             {
-                status = HuffmanShowTree(inFile, outFile);
+                status = HuffmanShowCodeTree(inFile, outFile);
             }
+            break;
+
+        case SHOW_TABLE:
+            status = CanonicalShowTable(inFile, outFile);
             break;
 
         case COMPRESS:
@@ -235,7 +244,7 @@ int main (int argc, char *argv[])
     }
     else
     {
-        perror("");
+        perror("Status error");
         return errno;
     }
 }
@@ -257,8 +266,8 @@ static void ShowUsage(FILE *stream, char *progPath)
     fprintf(stream, "  -C : Encode/Decode using a canonical code.\n");
     fprintf(stream, "  -c : Encode input file to output file.\n");
     fprintf(stream, "  -d : Decode input file to output file.\n");
-    fprintf(stream,
-        "  -t : Generate code tree for input file to output file.\n");
+    fprintf(stream, "  -t : Generate code tree for input file to output file.\n");
+    fprintf(stream, "  -s : Generate code table for input file to output file.\n");
     fprintf(stream, "  -i<filename> : Name of input file.\n");
     fprintf(stream, "  -o<filename> : Name of output file.\n");
     fprintf(stream, "  -h|?  : Print out command line options.\n\n");

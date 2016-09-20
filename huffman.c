@@ -285,7 +285,7 @@ int HuffmanDecodeFile(FILE *inFile, FILE *outFile)
 *                event of a failure.  Either way, inFile and outFile will
 *                be left open.
 ****************************************************************************/
-int HuffmanShowTree(FILE *inFile, FILE *outFile)
+int HuffmanShowCodeTree(FILE *inFile, FILE *outFile)
 {
     huffman_node_t *huffmanTree;        /* root of huffman tree */
     huffman_node_t *htp;                /* pointer into tree */
@@ -306,9 +306,14 @@ int HuffmanShowTree(FILE *inFile, FILE *outFile)
     }
 
     /* write out tree */
-    /* print heading to make things look pretty (int is 10 char max) */
-    fprintf(outFile, "Char  Count      Encoding\n");
-    fprintf(outFile, "----- ---------- ----------------\n");
+    /* print C heading */
+    fprintf(outFile, "typedef struct huffman_s {\n");
+    fprintf(outFile, "    uint8_t len;\n");
+    fprintf(outFile, "    uint16_t code;\n");
+    fprintf(outFile, "} huffman_t;\n\n");
+    fprintf(outFile, "const huffman_t huffmanCodes[] = {\n");
+    fprintf(outFile, "// Char  Count      Encoding\n");
+    fprintf(outFile, "// ----- ---------- ----------------\n");
 
     htp = huffmanTree;
     for(;;)
@@ -335,8 +340,8 @@ int HuffmanShowTree(FILE *inFile, FILE *outFile)
 
             if (htp->value != EOF_CHAR)
             {
-                fprintf(outFile, "0x%02X  %10d %s\n",
-                    htp->value, htp->count, code);
+                fprintf(outFile, "    { 0x%02X,  %2d }, // %12s\n",
+                    htp->value, depth, code);
             }
             else
             {
@@ -359,6 +364,113 @@ int HuffmanShowTree(FILE *inFile, FILE *outFile)
                 depth--;
                 htp = htp->parent;
                 code[depth] = '\0';
+            }
+        }
+
+        if (htp->parent == NULL)
+        {
+            /* we're at the top with nowhere to go */
+            break;
+        }
+    }
+    fprintf(outFile, "};\n");
+
+    /* clean up */
+    FreeHuffmanTree(huffmanTree);     /* free allocated memory */
+
+    return 0;
+}
+
+void nodePrint(FILE *outFile, huffman_node_t *htp)
+{
+    if (htp->printed == 0) {
+        htp->printed = 1;
+        fprintf(outFile, "i:%d l:%d r:%d\n", htp->index, htp->left->index, htp->right->index);
+    }
+}
+
+int HuffmanShowCodeTable(FILE *inFile, FILE *outFile)
+{
+    huffman_node_t *huffmanTree;        /* root of huffman tree */
+    huffman_node_t *htp;                /* pointer into tree */
+    char code[NUM_CHARS - 1];           /* 1s and 0s in character's code */
+    int depth = 0;                      /* depth of tree */
+    int index = 0;
+
+    /* validate input and output files */
+    if ((NULL == inFile) || (NULL == outFile))
+    {
+        errno = ENOENT;
+        return -1;
+    }
+
+    /* build tree */
+    if ((huffmanTree = GenerateTreeFromFile(inFile)) == NULL)
+    {
+        return -1;
+    }
+
+    /* write out tree */
+    /* print heading to make things look pretty (int is 10 char max) */
+    fprintf(outFile, "Huffman Tree\n");
+    htp = huffmanTree;
+    if (htp->index == -1) {htp->index = index++;}
+    for(;;)
+    {
+        /* follow this branch all the way left */
+        while (htp->left != NULL)
+        {
+            htp = htp->left;
+            if (htp->index == -1) {htp->index = index++;}
+        }
+
+        while (htp->parent != NULL)
+        {
+            if (htp != htp->parent->right)
+            {
+                htp = htp->parent->right;
+                if (htp->index == -1) {htp->index = index++;}
+                break;
+            }
+            else
+            {
+                /* parent's right tried, go up one level yet */
+                htp = htp->parent;
+                if (htp->index == -1) {htp->index = index++;}
+            }
+        }
+
+        if (htp->parent == NULL)
+        {
+            /* we're at the top with nowhere to go */
+            break;
+        }
+    }
+
+
+    htp = huffmanTree;
+    for(;;)
+    {
+        /* follow this branch all the way left */
+        while (htp->left != NULL)
+        {
+            code[depth] = '0';
+            htp = htp->left;
+            depth++;
+        }
+
+        while (htp->parent != NULL)
+        {
+            if (htp != htp->parent->right)
+            {
+                /* try the parent's right */
+                htp = htp->parent->right;
+                break;
+            }
+            else
+            {
+                /* parent's right tried, go up one level yet */
+                htp = htp->parent;
             }
         }
 

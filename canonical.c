@@ -34,6 +34,7 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include "huflocal.h"
 #include "huffman.h"
@@ -316,7 +317,7 @@ int CanonicalDecodeFile(FILE *inFile, FILE *outFile)
 int CanonicalShowTree(FILE *inFile, FILE *outFile)
 {
     huffman_node_t *huffmanTree;                /* root of huffman tree */
-    int i, length;
+    int i, length, code;
     canonical_list_t canonicalList[NUM_CHARS];  /* list of canonical codes */
 
     /* validate input and output files */
@@ -333,7 +334,7 @@ int CanonicalShowTree(FILE *inFile, FILE *outFile)
     }
 
     /* use tree to generate a canonical code */
-    if (!BuildCanonicalCode(huffmanTree, canonicalList))
+    if (-1 == BuildCanonicalCode(huffmanTree, canonicalList))
     {
         FreeHuffmanTree(huffmanTree);     /* free allocated memory */
         return -1;
@@ -342,24 +343,40 @@ int CanonicalShowTree(FILE *inFile, FILE *outFile)
     FreeHuffmanTree(huffmanTree);     /* free allocated memory */
 
     /* write out canonical code */
-    /* print heading to make things look pretty (int is 10 char max) */
-    fprintf(outFile, "Char  CodeLen  Encoding\n");
-    fprintf(outFile, "----- -------- ----------------\n");
+    /* print C heading */
+    fprintf(outFile, "#define HUFFMAN_EOF (-1)\n\n");
+    fprintf(outFile, "#define HUFFMAN_TREE_SIZE 257 // 256 characters plus EOF\n\n");
+    fprintf(outFile, "typedef struct huffmanTree_s {\n");
+    fprintf(outFile, "    int16_t     value;\n");
+    fprintf(outFile, "    uint16_t    codeLen;\n");
+    fprintf(outFile, "    uint16_t    code;\n");
+    fprintf(outFile, "} huffmanTree_t;\n\n");
+    fprintf(outFile, "const huffmanTree_t huffmanTree[HUFFMAN_TREE_SIZE] = {\n");
+    fprintf(outFile, "//    Char  Len    Code         Bitcode\n");
 
     for(i = 0; i < NUM_CHARS; i++)
     {
         if(canonicalList[i].codeLen > 0)
         {
+            code = 0;
+            for(length = 0; length < canonicalList[i].codeLen; length++)
+            {
+                code <<= 1;
+                if (BitArrayTestBit(canonicalList[i].code, length))
+                {
+                    code |= 0x01;
+                }
+            }
             if (canonicalList[i].value != EOF_CHAR)
             {
                 fprintf(outFile,
-                        "0x%02X  %02d       ",
-                        canonicalList[i].value, canonicalList[i].codeLen);
+                        "    { 0x%02X,  %2d, 0x%04X },  //  ",
+                        canonicalList[i].value, canonicalList[i].codeLen, code);
             }
             else
             {
                 fprintf(outFile,
-                        "EOF   %02d       ", canonicalList[i].codeLen);
+                        "    { HUFFMAN_EOF,  %2d, 0x%04X },  //  ", canonicalList[i].codeLen, code);
             }
 
             /* now write out the code bits */
@@ -378,6 +395,88 @@ int CanonicalShowTree(FILE *inFile, FILE *outFile)
             fputc('\n', outFile);
         }
     }
+    fprintf(outFile, "};\n");
+
+    return 0;
+}
+
+int CanonicalShowTable(FILE *inFile, FILE *outFile)
+{
+    huffman_node_t *huffmanTree;                /* root of huffman tree */
+    int i, length;
+    canonical_list_t canonicalList[NUM_CHARS];  /* list of canonical codes */
+    uint16_t code;
+    uint16_t codeBit;
+    char codeBuf[16];
+
+    /* validate input and output files */
+    if ((NULL == inFile) || (NULL == outFile))
+    {
+        errno = ENOENT;
+        return -1;
+    }
+
+    /* build tree */
+    if ((huffmanTree = GenerateTreeFromFile(inFile)) == NULL)
+    {
+        return -1;
+    }
+
+    /* use tree to generate a canonical code */
+    if (-1 == BuildCanonicalCode(huffmanTree, canonicalList))
+    {
+        FreeHuffmanTree(huffmanTree);     /* free allocated memory */
+        return -1;
+    }
+
+    FreeHuffmanTree(huffmanTree);     /* free allocated memory */
+
+    /* write out canonical code */
+    /* print heading to make things look pretty (int is 10 char max) */
+    /* print C heading */
+    fprintf(outFile, "#define HUFFMAN_TABLE_SIZE 257 // 256 characters plus EOF\n\n");
+    fprintf(outFile, "typedef struct huffmanTable_s {\n");
+    fprintf(outFile, "    uint8_t     codeLen;\n");
+    fprintf(outFile, "    uint16_t    code;\n");
+    fprintf(outFile, "} huffmanTable_t;\n\n");
+    fprintf(outFile, "const huffmanTable_t huffmanTable[HUFFMAN_TABLE_SIZE] = {\n");
+    fprintf(outFile, "//   Len    Code        Char    Bitcode\n");
+
+    for(i = 0; i < NUM_CHARS; i++)
+    {
+        if(canonicalList[i].codeLen > 0)
+        {
+            /* now write out the code bits */
+            code = 0;
+            codeBit = 0x8000;
+            codeBuf[0] = '\0';
+            for(length = 0; length < canonicalList[i].codeLen; length++)
+            {
+                if (BitArrayTestBit(canonicalList[i].code, length))
+                {
+                    //fputc('1', outFile);
+                    strcat(codeBuf, "1");
+                    code |= codeBit;
+                }
+                else
+                {
+                    //fputc('0', outFile);
+                    strcat(codeBuf, "0");
+                }
+                codeBit >>= 1;
+            }
+            fprintf(outFile,"    { %2d, ", canonicalList[i].codeLen);
+            fprintf(outFile, "0x%04X }, //  ", code);
+            if (canonicalList[i].value == EOF_CHAR) {
+                fprintf(outFile, "EOF     ");
+            } else {
+                fprintf(outFile, "0x%02X    " ,canonicalList[i].value);
+            }
+            fprintf(outFile, "%s", codeBuf);
+            fputc('\n', outFile);
+        }
+    }
+    fprintf(outFile, "};\n\n");
 
     return 0;
 }
@@ -523,7 +622,7 @@ static int BuildCanonicalCode(huffman_node_t *ht, canonical_list_t *cl)
     if (0 == AssignCanonicalCodes(cl))
     {
         /* re-sort list in lexical order for use by encode algorithm */
-        qsort(cl, NUM_CHARS, sizeof(canonical_list_t), CompareBySymbolValue);
+        //qsort(cl, NUM_CHARS, sizeof(canonical_list_t), CompareBySymbolValue);
         return 0;       /* success */
     }
 

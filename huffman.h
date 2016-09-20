@@ -42,12 +42,13 @@
 ***************************************************************************/
 
 /* traditional codes */
-int HuffmanShowTree(FILE *inFile, FILE *outFile);       /* dump codes */
+int HuffmanShowCodeTree(FILE *inFile, FILE *outFile);       /* dump codes */
 int HuffmanEncodeFile(FILE *inFile, FILE *outFile);     /* encode file */
 int HuffmanDecodeFile(FILE *inFile, FILE *outFile);     /* decode file */
 
 /* canonical code */
 int CanonicalShowTree(FILE *inFile, FILE *outFile);     /* dump codes */
+int CanonicalShowTable(FILE *inFile, FILE *outFile);     /* dump codes */
 int CanonicalEncodeFile(FILE *inFile, FILE *outFile);   /* encode file */
 int CanonicalDecodeFile(FILE *inFile, FILE *outFile);   /* decode file */
 
