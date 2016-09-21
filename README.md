@@ -2,6 +2,8 @@
 
 This code is based on Michael Dipperstein's [LGPL](http://www.gnu.org/licenses/licenses.html#LGPL) Huffman Code implementation at http://michael.dipperstein.com/huffman/ . The initial commit of the code was taken from his zipfile at http://michael.dipperstein.com/huffman/huffman-0.9.zip
 
+Michael's original README is [here](README_original)
+
 
 ## Purpose
 
