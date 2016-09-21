@@ -42,13 +42,18 @@
 ***************************************************************************/
 
 /* traditional codes */
-int HuffmanShowCodeTree(FILE *inFile, FILE *outFile);       /* dump codes */
+int HuffmanShowTree(FILE *inFile, FILE *outFile);       /* dump code tree */
 int HuffmanEncodeFile(FILE *inFile, FILE *outFile);     /* encode file */
 int HuffmanDecodeFile(FILE *inFile, FILE *outFile);     /* decode file */
 
 /* canonical code */
-int CanonicalShowTree(FILE *inFile, FILE *outFile);     /* dump codes */
-int CanonicalShowTable(FILE *inFile, FILE *outFile);     /* dump codes */
+typedef enum {
+    C_FORMAT,
+    JAVASCRIPT_FORMAT
+} output_format_e;
+
+int CanonicalShowTree(FILE *inFile, FILE *outFile, output_format_e output_format);     /* dump code tree */
+int CanonicalShowTable(FILE *inFile, FILE *outFile);    /* dump code table */
 int CanonicalEncodeFile(FILE *inFile, FILE *outFile);   /* encode file */
 int CanonicalDecodeFile(FILE *inFile, FILE *outFile);   /* decode file */
 

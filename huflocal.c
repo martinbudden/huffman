@@ -137,8 +137,6 @@ huffman_node_t *AllocHuffmanNode(int value)
         ht->ignore = 1;         /* will be 0 if one is found */
 
         /* at this point, the node is not part of a tree */
-        ht->index = -1;
-        ht->printed = 0;
         ht->count = 0;
         ht->level = 0;
         ht->left = NULL;
@@ -173,8 +171,6 @@ static huffman_node_t *AllocHuffmanCompositeNode(huffman_node_t *left,
 
     if (ht != NULL)
     {
-        ht->index = -1;
-        ht->printed = 0;
         ht->value = COMPOSITE_NODE;     /* represents multiple chars */
         ht->ignore = 0;
         ht->count = left->count + right->count;     /* sum of children */

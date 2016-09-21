@@ -55,8 +55,6 @@ typedef unsigned int count_t;       /* unsigned 32 bit for character counts */
 
 typedef struct huffman_node_t
 {
-    int index;
-    int printed;
     int value;          /* character(s) represented by this entry */
     count_t count;      /* number of occurrences of value (probability) */
 

@@ -314,7 +314,7 @@ int CanonicalDecodeFile(FILE *inFile, FILE *outFile)
 *                event of a failure.  Either way, inFile and outFile will
 *                be left open.
 ****************************************************************************/
-int CanonicalShowTree(FILE *inFile, FILE *outFile)
+int CanonicalShowTree(FILE *inFile, FILE *outFile, output_format_e output_format)
 {
     huffman_node_t *huffmanTree;                /* root of huffman tree */
     int i, length, code;
@@ -341,18 +341,25 @@ int CanonicalShowTree(FILE *inFile, FILE *outFile)
     }
 
     FreeHuffmanTree(huffmanTree);     /* free allocated memory */
+    /* sort by code length */
+    qsort(canonicalList, NUM_CHARS, sizeof(canonical_list_t), CompareByCodeLen);
 
     /* write out canonical code */
-    /* print C heading */
-    fprintf(outFile, "#define HUFFMAN_EOF (-1)\n\n");
-    fprintf(outFile, "#define HUFFMAN_TREE_SIZE 257 // 256 characters plus EOF\n\n");
-    fprintf(outFile, "typedef struct huffmanTree_s {\n");
-    fprintf(outFile, "    int16_t     value;\n");
-    fprintf(outFile, "    uint16_t    codeLen;\n");
-    fprintf(outFile, "    uint16_t    code;\n");
-    fprintf(outFile, "} huffmanTree_t;\n\n");
-    fprintf(outFile, "const huffmanTree_t huffmanTree[HUFFMAN_TREE_SIZE] = {\n");
-    fprintf(outFile, "//    Char  Len    Code         Bitcode\n");
+    if (output_format == C_FORMAT) {
+        /* print C heading */
+        fprintf(outFile, "#define HUFFMAN_EOF (-1)\n\n");
+        fprintf(outFile, "#define HUFFMAN_TREE_SIZE 257 // 256 characters plus EOF\n\n");
+        fprintf(outFile, "typedef struct huffmanTree_s {\n");
+        fprintf(outFile, "    int16_t     value;\n");
+        fprintf(outFile, "    uint16_t    codeLen;\n");
+        fprintf(outFile, "    uint16_t    code;\n");
+        fprintf(outFile, "} huffmanTree_t;\n\n");
+        fprintf(outFile, "const huffmanTree_t huffmanTree[HUFFMAN_TREE_SIZE] = {\n");
+        fprintf(outFile, "//    Char  Len    Code         Bitcode\n");
+    } else {
+        fprintf(outFile, "var huffmanTree = [\n");
+        fprintf(outFile, "//    Char  Len    Code         Bitcode\n");
+    }
 
     for(i = 0; i < NUM_CHARS; i++)
     {
@@ -370,13 +377,14 @@ int CanonicalShowTree(FILE *inFile, FILE *outFile)
             if (canonicalList[i].value != EOF_CHAR)
             {
                 fprintf(outFile,
-                        "    { 0x%02X,  %2d, 0x%04X },  //  ",
+                        output_format == C_FORMAT ? "    { 0x%02X,  %2d, 0x%04X },  //  " : "    [ 0x%02X,  %2d, 0x%04X ],  //  ",
                         canonicalList[i].value, canonicalList[i].codeLen, code);
             }
             else
             {
                 fprintf(outFile,
-                        "    { HUFFMAN_EOF,  %2d, 0x%04X },  //  ", canonicalList[i].codeLen, code);
+                        output_format == C_FORMAT ? "    { HUFFMAN_EOF,  %2d, 0x%04X },  //  " : "    [   -1,  %2d, 0x%04X ],  //  ",
+                        canonicalList[i].codeLen, code);
             }
 
             /* now write out the code bits */
@@ -395,7 +403,7 @@ int CanonicalShowTree(FILE *inFile, FILE *outFile)
             fputc('\n', outFile);
         }
     }
-    fprintf(outFile, "};\n");
+    fprintf(outFile, output_format == C_FORMAT ? "};\n" : "];\n");
 
     return 0;
 }
@@ -622,7 +630,7 @@ static int BuildCanonicalCode(huffman_node_t *ht, canonical_list_t *cl)
     if (0 == AssignCanonicalCodes(cl))
     {
         /* re-sort list in lexical order for use by encode algorithm */
-        //qsort(cl, NUM_CHARS, sizeof(canonical_list_t), CompareBySymbolValue);
+        qsort(cl, NUM_CHARS, sizeof(canonical_list_t), CompareBySymbolValue);
         return 0;       /* success */
     }
 

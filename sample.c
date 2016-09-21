@@ -78,15 +78,17 @@ int main (int argc, char *argv[])
     option_t *optList, *thisOpt;
     FILE *inFile, *outFile;
     mode_e mode;
+    output_format_e output_format;
 
     /* initialize variables */
     inFile = NULL;
     outFile = NULL;
     mode = SHOW_TREE;
     canonical = 0;
+    output_format = C_FORMAT;
 
     /* parse command line */
-    optList = GetOptList(argc, argv, "Ccdtsni:o:h?");
+    optList = GetOptList(argc, argv, "Ccdtsnji:o:h?");
     thisOpt = optList;
 
     while (thisOpt != NULL)
@@ -103,6 +105,10 @@ int main (int argc, char *argv[])
 
             case 'd':       /* decompression mode */
                 mode = DECOMPRESS;
+                break;
+
+            case 'j':
+                output_format = JAVASCRIPT_FORMAT;
                 break;
 
             case 't':       /* just display tree */
@@ -195,11 +201,11 @@ int main (int argc, char *argv[])
         case SHOW_TREE:
             if (canonical)
             {
-                status = CanonicalShowTree(inFile, outFile);
+                status = CanonicalShowTree(inFile, outFile, output_format);
             }
             else
             {
-                status = HuffmanShowCodeTree(inFile, outFile);
+                status = HuffmanShowTree(inFile, outFile);
             }
             break;
 
