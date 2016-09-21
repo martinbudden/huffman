@@ -9,7 +9,7 @@ Michael's original README is [here](README_original)
 
 The code retains it's original ability to compress and decompress files.
 
-The code can now output the Huffman table in C code format, for inclusion into another program. The particular motivation was for including the Huffman table in [betaflight](https://github.com/betaflight/betaflight), in particular this (issue)[https://github.com/betaflight/betaflight/issues/1198]: compressing the black box log file for download.
+The code can now output the Huffman table in C code format, for inclusion into another program. The particular motivation was for including the Huffman table in [betaflight](https://github.com/betaflight/betaflight), in particular [issue 1198](https://github.com/betaflight/betaflight/issues/1198): compressing the black box log file for download.
 
 I've made the minimum number of changes necessary to acheive my goals.
 
